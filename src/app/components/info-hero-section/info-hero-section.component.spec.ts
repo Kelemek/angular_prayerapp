@@ -6,6 +6,10 @@ import { ɵresolveComponentResources as resolveComponentResources } from "@angul
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { provideRouter } from "@angular/router";
 import { InfoHeroSectionComponent } from "./info-hero-section.component";
+import {
+  ANDROID_PLAY_STORE_URL,
+  IOS_APP_STORE_URL,
+} from "../../../lib/app-store-links";
 
 const componentDir = dirname(fileURLToPath(import.meta.url));
 
@@ -53,20 +57,14 @@ describe("InfoHeroSectionComponent", () => {
     );
     expect(component.iosStoreQrUrl).toContain("api.qrserver.com");
     expect(component.iosStoreQrUrl).toContain(
-      encodeURIComponent(
-        "https://apps.apple.com/us/app/cross-pointe-prayer/id6759469929"
-      )
+      encodeURIComponent(IOS_APP_STORE_URL)
     );
   });
 
   it("openIosStore opens App Store URL", () => {
     const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
     component.openIosStore();
-    expect(openSpy).toHaveBeenCalledWith(
-      "https://apps.apple.com/us/app/cross-pointe-prayer/id6759469929",
-      "_blank",
-      "noopener"
-    );
+    expect(openSpy).toHaveBeenCalledWith(IOS_APP_STORE_URL, "_blank", "noopener");
     openSpy.mockRestore();
   });
 
@@ -74,7 +72,7 @@ describe("InfoHeroSectionComponent", () => {
     const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
     component.openAndroidStore();
     expect(openSpy).toHaveBeenCalledWith(
-      "https://play.google.com/store/apps/details?id=com.prayerapp.mobile",
+      ANDROID_PLAY_STORE_URL,
       "_blank",
       "noopener"
     );

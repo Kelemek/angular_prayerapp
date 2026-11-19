@@ -1,5 +1,9 @@
 import { Component, OnInit } from "@angular/core";
 import { RouterModule } from "@angular/router";
+import {
+  ANDROID_PLAY_STORE_URL,
+  IOS_APP_STORE_URL,
+} from "../../../lib/app-store-links";
 
 @Component({
   selector: "app-info-hero-section",
@@ -12,10 +16,8 @@ import { RouterModule } from "@angular/router";
   },
 })
 export class InfoHeroSectionComponent implements OnInit {
-  private readonly iosStoreUrl =
-    "https://apps.apple.com/us/app/cross-pointe-prayer/id6759469929";
-  private readonly androidStoreUrl =
-    "https://play.google.com/store/apps/details?id=com.prayerapp.mobile";
+  private readonly iosStoreUrl = IOS_APP_STORE_URL;
+  private readonly androidStoreUrl = ANDROID_PLAY_STORE_URL;
 
   webAppQrUrl = "";
   iosStoreQrUrl = "";
