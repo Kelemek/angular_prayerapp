@@ -48,7 +48,7 @@ if (typeof document === 'undefined') {
       popover: {
         title: dom.escapeHtml('Church'),
         description:
-          'The <strong>Church</strong> tab shows community prayers shared with your church (highlighted with a colored border when active). Use the <strong>Current</strong>, <strong>Answered</strong>, <strong>Archived</strong>, <strong>Total</strong>, and <strong>Prompts</strong> filters in the row below to switch views. If a Planning Center list is mapped, <strong>Members</strong> also appears after <strong>Prompts</strong>.',
+          'The <strong>Church</strong> tab shows community prayers shared with your church (highlighted with a colored border when active). The first row is <strong>Current</strong>, <strong>Answered</strong>, and <strong>Total</strong>. The second row is <strong>Archived</strong> and <strong>Prompts</strong>. If a Planning Center list is mapped, <strong>Members</strong> also appears on that second row after <strong>Prompts</strong>.',
         side: 'bottom',
         align: 'start',
         nextBtnText: 'Next',
@@ -84,21 +84,6 @@ if (typeof document === 'undefined') {
     },
   });
 
-  if (c2) {
-    const archivedDescription = `${dom.escapeHtml(c2.subtitle)}<br><br>${formatHelpContentHtml(c2.text)}`;
-    steps.push({
-      element: () => dom.getArchivedFilterEl()!,
-      popover: {
-        title: dom.escapeHtml('Archived'),
-        description: archivedDescription,
-        side: 'bottom',
-        align: 'start',
-        nextBtnText: 'Next',
-        onNextClick: host.advanceAfterOrKill(hooks.switchToArchived),
-      },
-    });
-  }
-
   const totalPhrase = excerptForNamedFilter(overview, 'Total');
   const totalDescription = isDescriptiveFilterTourExcerpt(totalPhrase)
     ? totalPhrase
@@ -114,6 +99,21 @@ if (typeof document === 'undefined') {
       onNextClick: host.advanceAfterOrKill(hooks.switchToTotal),
     },
   });
+
+  if (c2) {
+    const archivedDescription = `${dom.escapeHtml(c2.subtitle)}<br><br>${formatHelpContentHtml(c2.text)}`;
+    steps.push({
+      element: () => dom.getArchivedFilterEl()!,
+      popover: {
+        title: dom.escapeHtml('Archived'),
+        description: archivedDescription,
+        side: 'bottom',
+        align: 'start',
+        nextBtnText: 'Next',
+        onNextClick: host.advanceAfterOrKill(hooks.switchToArchived),
+      },
+    });
+  }
 
   const promptsPhrase = excerptForNamedFilter(overview, 'Prompts');
   if (dom.getPromptsFilterEl()) {

@@ -2,7 +2,10 @@ import { describe, it, expect, beforeEach, afterEach, beforeAll } from "vitest";
 import { ComponentFixture, TestBed } from "@angular/core/testing";
 import { InfoHomeFilterPreviewTabsComponent } from "./info-home-filter-preview-tabs.component";
 import { setupInfoPreviewComponentResources } from "../info-preview-component-resources.spec-helper";
-import { HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS } from "../../lib/home-sub-filter-chip-classes";
+import {
+  HOME_SUB_FILTER_CHIP_ROW_CLASS,
+  HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS,
+} from "../../lib/home-sub-filter-chip-classes";
 
 describe("InfoHomeFilterPreviewTabsComponent", () => {
   beforeAll(async () => {
@@ -113,35 +116,67 @@ describe("InfoHomeFilterPreviewTabsComponent", () => {
     expect(emitted).toEqual(["groups-current"]);
   });
 
-  it("wraps church status chips with flex-wrap hosts like Home public filters", () => {
+  it("mirrors Home Church chips as two rows", () => {
     fixture.detectChanges();
-    const statusLabels = [
-      "Current (9)",
-      "Answered (2)",
-      "Archived (8)",
-      "Total (19)",
-      "Prompts (12)",
-    ];
-    for (const label of statusLabels) {
-      const button = [...fixture.nativeElement.querySelectorAll("button")].find(
-        (el: HTMLButtonElement) =>
-          el.textContent?.replace(/\s+/g, " ").trim() === label
+    const labelOf = (button: HTMLButtonElement) =>
+      button.textContent?.replace(/\s+/g, " ").trim() ?? "";
+    const buttonFor = (label: string) =>
+      [...fixture.nativeElement.querySelectorAll("button")].find(
+        (el: HTMLButtonElement) => labelOf(el) === label
       ) as HTMLButtonElement;
-      expect(button).toBeTruthy();
-      const host = button.closest("div") as HTMLElement;
-      expect(host.className).toContain("flex-[1_1_0]");
-      expect(host.className).toContain("min-w-max");
-      expect(button.className).toContain(
-        HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS.split(" ")[0]
-      );
+    const rowOf = (label: string) =>
+      buttonFor(label).closest(
+        ".flex.w-full.flex-wrap.items-center.gap-2"
+      ) as HTMLElement;
+
+    const statusRow = rowOf("Current (9)");
+    const secondaryRow = rowOf("Archived (8)");
+    expect(statusRow).not.toBe(secondaryRow);
+    expect(secondaryRow.className).toContain("mt-2");
+    for (const token of HOME_SUB_FILTER_CHIP_ROW_CLASS.split(" ")) {
+      expect(statusRow.className.split(/\s+/)).toContain(token);
+      expect(secondaryRow.className.split(/\s+/)).toContain(token);
     }
+
+    expect(
+      [...statusRow.querySelectorAll(":scope > app-home-sub-filter-chip")].map(
+        (chip) => labelOf(chip.querySelector("button") as HTMLButtonElement)
+      )
+    ).toEqual(["", "Current (9)", "Answered (2)", "Total (19)"]);
+    expect(
+      [...secondaryRow.querySelectorAll("button")].map((button) =>
+        labelOf(button)
+      )
+    ).toEqual(["Archived (8)", "Prompts (12)"]);
+
     const add = fixture.nativeElement.querySelector(
       'button[aria-label="Add a church prayer"]'
     ) as HTMLButtonElement;
     expect(add.className).toContain("size-9");
-    expect(add.parentElement?.parentElement?.className).not.toContain(
-      "flex-[1_1_0]"
-    );
+    const addHost = add.closest("app-home-sub-filter-chip") as HTMLElement;
+    expect(addHost.classList.contains("flex-1")).toBe(false);
+    expect(addHost.parentElement).toBe(statusRow);
+
+    for (const label of ["Current (9)", "Answered (2)", "Total (19)"]) {
+      const chipButton = buttonFor(label);
+      const host = chipButton.closest("app-home-sub-filter-chip") as HTMLElement;
+      expect(host.classList.contains("flex-1")).toBe(true);
+      expect(host.parentElement).toBe(statusRow);
+    }
+
+    for (const label of ["Archived (8)", "Prompts (12)"]) {
+      const chipButton = buttonFor(label);
+      const host = chipButton.parentElement?.parentElement as HTMLElement;
+      expect(host.className).toContain("flex-[1_1_0]");
+      expect(host.className).toContain("min-w-max");
+      expect(chipButton.className).toContain(
+        HOME_SUB_FILTER_CHIP_WRAP_STRETCH_CLASS.split(" ")[0]
+      );
+    }
+
+    const panel = statusRow.parentElement as HTMLElement;
+    expect(panel.className).toContain("rounded-b-lg");
+    expect(panel.className).not.toContain("flex-wrap");
   });
 
   it("emits openAddChurchPrayer when church + is clicked", () => {

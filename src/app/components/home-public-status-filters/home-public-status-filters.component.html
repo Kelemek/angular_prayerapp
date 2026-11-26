@@ -1,142 +1,140 @@
 <div [class]="sectionGapClass">
-  <div [class]="panelGroupClass + ' ' + chipRowClass">
-  @let currentBadge = (currentPrayerBadge$ | async) ?? 0;
-  @let answeredBadge = (answeredPrayerBadge$ | async) ?? 0;
-  @let promptBadge = (promptBadge$ | async) ?? 0;
-  @let badgesEnabled = (badgeService.getBadgeFunctionalityEnabled$() | async);
+  <div [class]="panelGroupClass">
+    @let currentBadge = (currentPrayerBadge$ | async) ?? 0;
+    @let answeredBadge = (answeredPrayerBadge$ | async) ?? 0;
+    @let promptBadge = (promptBadge$ | async) ?? 0;
+    @let badgesEnabled = (badgeService.getBadgeFunctionalityEnabled$() | async);
 
-  <app-home-sub-filter-chip
-    chipId="tour-filter-add-church-prayer"
-    chipAriaLabel="Add a church prayer"
-    [stretch]="false"
-    [active]="false"
-    [layoutClass]="addPrayerChipLayoutClass"
-    [activeClass]="chipThemes.current.active"
-    [inactiveClass]="chipThemes.current.inactive"
-    (chipClick)="addPrayer.emit()"
-  >
-    <svg
-      class="size-6 shrink-0"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2.25"
-      stroke-linecap="round"
-      aria-hidden="true"
-    >
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  </app-home-sub-filter-chip>
+    <div [class]="chipRowClass">
+      <app-home-sub-filter-chip
+        chipId="tour-filter-add-church-prayer"
+        chipAriaLabel="Add a church prayer"
+        [stretch]="false"
+        [active]="false"
+        [layoutClass]="addPrayerChipLayoutClass"
+        [activeClass]="chipThemes.current.active"
+        [inactiveClass]="chipThemes.current.inactive"
+        (chipClick)="addPrayer.emit()"
+      >
+        <svg
+          class="size-6 shrink-0"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.25"
+          stroke-linecap="round"
+          aria-hidden="true"
+        >
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+      </app-home-sub-filter-chip>
 
-  <div [class]="chipHostClass">
-  <app-home-sub-filter-chip
-    chipId="tour-filter-current"
-    [active]="activeFilter === 'current'"
-    [badgeOverlay]="true"
-    [layoutClass]="chipButtonClass"
-    [activeClass]="chipThemes.current.active"
-    [inactiveClass]="chipThemes.current.inactive"
-    (chipClick)="selectFilter.emit('current')"
-  >
-    Current ({{ currentPrayersCount }})
-    @if (badgesEnabled && currentBadge > 0) {
-    <app-home-filter-badge-button
-      [count]="currentBadge"
-      [compact]="true"
-      title="Mark all current prayers as read"
-      ariaLabel="Mark all current prayers as read"
-      (markRead)="badgeService.markAllAsReadByStatus('prayers', 'current')"
-    />
-    }
-  </app-home-sub-filter-chip>
-  </div>
+      <app-home-sub-filter-chip
+        chipId="tour-filter-current"
+        [stretch]="true"
+        [active]="activeFilter === 'current'"
+        [badgeOverlay]="true"
+        [activeClass]="chipThemes.current.active"
+        [inactiveClass]="chipThemes.current.inactive"
+        (chipClick)="selectFilter.emit('current')"
+      >
+        Current ({{ currentPrayersCount }})
+        @if (badgesEnabled && currentBadge > 0) {
+        <app-home-filter-badge-button
+          [count]="currentBadge"
+          [compact]="true"
+          title="Mark all current prayers as read"
+          ariaLabel="Mark all current prayers as read"
+          (markRead)="badgeService.markAllAsReadByStatus('prayers', 'current')"
+        />
+        }
+      </app-home-sub-filter-chip>
 
-  <div [class]="chipHostClass">
-  <app-home-sub-filter-chip
-    chipId="tour-filter-answered"
-    [active]="activeFilter === 'answered'"
-    [badgeOverlay]="true"
-    [layoutClass]="chipButtonClass"
-    [activeClass]="chipThemes.answered.active"
-    [inactiveClass]="chipThemes.answered.inactive"
-    (chipClick)="selectFilter.emit('answered')"
-  >
-    Answered ({{ answeredPrayersCount }})
-    @if (badgesEnabled && answeredBadge > 0) {
-    <app-home-filter-badge-button
-      [count]="answeredBadge"
-      [compact]="true"
-      title="Mark all answered prayers as read"
-      ariaLabel="Mark all answered prayers as read"
-      (markRead)="badgeService.markAllAsReadByStatus('prayers', 'answered')"
-    />
-    }
-  </app-home-sub-filter-chip>
-  </div>
+      <app-home-sub-filter-chip
+        chipId="tour-filter-answered"
+        [stretch]="true"
+        [active]="activeFilter === 'answered'"
+        [badgeOverlay]="true"
+        [activeClass]="chipThemes.answered.active"
+        [inactiveClass]="chipThemes.answered.inactive"
+        (chipClick)="selectFilter.emit('answered')"
+      >
+        Answered ({{ answeredPrayersCount }})
+        @if (badgesEnabled && answeredBadge > 0) {
+        <app-home-filter-badge-button
+          [count]="answeredBadge"
+          [compact]="true"
+          title="Mark all answered prayers as read"
+          ariaLabel="Mark all answered prayers as read"
+          (markRead)="badgeService.markAllAsReadByStatus('prayers', 'answered')"
+        />
+        }
+      </app-home-sub-filter-chip>
 
-  <div [class]="chipHostClass">
-  <app-home-sub-filter-chip
-    chipId="tour-filter-archived"
-    [layoutClass]="chipButtonClass"
-    [active]="activeFilter === 'archived'"
-    [activeClass]="chipThemes.archived.active"
-    [inactiveClass]="chipThemes.archived.inactive"
-    (chipClick)="selectFilter.emit('archived')"
-  >
-    Archived ({{ archivedPrayersCount }})
-  </app-home-sub-filter-chip>
-  </div>
+      <app-home-sub-filter-chip
+        chipId="tour-filter-total"
+        [stretch]="true"
+        [active]="activeFilter === 'total'"
+        [activeClass]="chipThemes.total.active"
+        [inactiveClass]="chipThemes.total.inactive"
+        (chipClick)="selectFilter.emit('total')"
+      >
+        Total ({{ totalPrayersCount }})
+      </app-home-sub-filter-chip>
+    </div>
 
-  <div [class]="chipHostClass">
-  <app-home-sub-filter-chip
-    chipId="tour-filter-total"
-    [layoutClass]="chipButtonClass"
-    [active]="activeFilter === 'total'"
-    [activeClass]="chipThemes.total.active"
-    [inactiveClass]="chipThemes.total.inactive"
-    (chipClick)="selectFilter.emit('total')"
-  >
-    Total ({{ totalPrayersCount }})
-  </app-home-sub-filter-chip>
-  </div>
+    <div [class]="chipRowClass + ' mt-2'">
+      <div [class]="chipHostClass">
+        <app-home-sub-filter-chip
+          chipId="tour-filter-archived"
+          [layoutClass]="chipButtonClass"
+          [active]="activeFilter === 'archived'"
+          [activeClass]="chipThemes.archived.active"
+          [inactiveClass]="chipThemes.archived.inactive"
+          (chipClick)="selectFilter.emit('archived')"
+        >
+          Archived ({{ archivedPrayersCount }})
+        </app-home-sub-filter-chip>
+      </div>
 
-  <div [class]="chipHostClass">
-  <app-home-sub-filter-chip
-    chipId="tour-filter-prompts"
-    [active]="activeFilter === 'prompts'"
-    [badgeOverlay]="true"
-    [layoutClass]="chipButtonClass"
-    [activeClass]="chipThemes.prompts.active"
-    [inactiveClass]="chipThemes.prompts.inactive"
-    (chipClick)="selectFilter.emit('prompts')"
-  >
-    Prompts@if (promptsCount > 0) { ({{ promptsCount }})}
-    @if (badgesEnabled && promptBadge > 0) {
-    <app-home-filter-badge-button
-      [count]="promptBadge"
-      [compact]="true"
-      title="Mark all prompts as read"
-      ariaLabel="Mark all prompts as read"
-      (markRead)="badgeService.markAllAsRead('prompts')"
-    />
-    }
-  </app-home-sub-filter-chip>
-  </div>
+      <div [class]="chipHostClass">
+        <app-home-sub-filter-chip
+          chipId="tour-filter-prompts"
+          [active]="activeFilter === 'prompts'"
+          [badgeOverlay]="true"
+          [layoutClass]="chipButtonClass"
+          [activeClass]="chipThemes.prompts.active"
+          [inactiveClass]="chipThemes.prompts.inactive"
+          (chipClick)="selectFilter.emit('prompts')"
+        >
+          Prompts@if (promptsCount > 0) { ({{ promptsCount }})}
+          @if (badgesEnabled && promptBadge > 0) {
+          <app-home-filter-badge-button
+            [count]="promptBadge"
+            [compact]="true"
+            title="Mark all prompts as read"
+            ariaLabel="Mark all prompts as read"
+            (markRead)="badgeService.markAllAsRead('prompts')"
+          />
+          }
+        </app-home-sub-filter-chip>
+      </div>
 
-  @if (showPlanningCenterMembersFilter) {
-  <div [class]="chipHostClass">
-  <app-home-sub-filter-chip
-    chipId="tour-filter-members"
-    [layoutClass]="chipButtonClass"
-    [active]="activeFilter === 'planning_center_list'"
-    [busy]="planningCenterMembersLoading"
-    [activeClass]="chipThemes.members.active"
-    [inactiveClass]="chipThemes.members.inactive"
-    (chipClick)="selectFilter.emit('planning_center_list')"
-  >
-    Members ({{ planningCenterMembersDisplayCount }})
-  </app-home-sub-filter-chip>
-  </div>
-  }
+      @if (showPlanningCenterMembersFilter) {
+      <div [class]="chipHostClass">
+        <app-home-sub-filter-chip
+          chipId="tour-filter-members"
+          [layoutClass]="chipButtonClass"
+          [active]="activeFilter === 'planning_center_list'"
+          [busy]="planningCenterMembersLoading"
+          [activeClass]="chipThemes.members.active"
+          [inactiveClass]="chipThemes.members.inactive"
+          (chipClick)="selectFilter.emit('planning_center_list')"
+        >
+          Members ({{ planningCenterMembersDisplayCount }})
+        </app-home-sub-filter-chip>
+      </div>
+      }
+    </div>
   </div>
 </div>
