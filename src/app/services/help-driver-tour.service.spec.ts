@@ -1239,7 +1239,7 @@ describe('HelpDriverTourService', () => {
       expect(titles).toContain('Members');
     });
 
-    it('visits Prompts before Members to match the Church chip row', () => {
+    it('visits Current, Answered, Total, Archived, Prompts, then Members', () => {
       const publicTab = document.createElement('button');
       publicTab.id = TOUR_FILTER_PUBLIC_ID;
       document.body.appendChild(publicTab);
@@ -1262,8 +1262,20 @@ describe('HelpDriverTourService', () => {
 
       const config = vi.mocked(driver).mock.calls[0][0];
       const titles = (config?.steps ?? []).map((step) => step.popover?.title);
-      expect(titles.indexOf('Total')).toBeGreaterThan(-1);
-      expect(titles.indexOf('Prompts')).toBeGreaterThan(titles.indexOf('Total'));
+      const church = (config?.steps ?? []).find(
+        (step) => step.popover?.title === 'Church'
+      );
+      expect(church?.popover?.description).toContain(
+        'The first row is <strong>Current</strong>, <strong>Answered</strong>, and <strong>Total</strong>.'
+      );
+      expect(church?.popover?.description).toContain(
+        'The second row is <strong>Archived</strong> and <strong>Prompts</strong>.'
+      );
+      expect(titles.indexOf('Current')).toBeGreaterThan(titles.indexOf('Church'));
+      expect(titles.indexOf('Answered')).toBeGreaterThan(titles.indexOf('Current'));
+      expect(titles.indexOf('Total')).toBeGreaterThan(titles.indexOf('Answered'));
+      expect(titles.indexOf('Archived')).toBeGreaterThan(titles.indexOf('Total'));
+      expect(titles.indexOf('Prompts')).toBeGreaterThan(titles.indexOf('Archived'));
       expect(titles.indexOf('Members')).toBeGreaterThan(titles.indexOf('Prompts'));
     });
   });

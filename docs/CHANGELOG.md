@@ -4,6 +4,8 @@ Major features and milestones for the Prayer App.
 
 ## [Current] - February 2026
 
+- Church sub-filters use two rows at every width, matching Group and Personal. Row 1 is a square **+** plus **Current**, **Answered**, and **Total**. Row 2 is **Archived**, **Prompts**, and **Members** when a Planning Center list is mapped. The Info preview, Help filter copy, and Filtering guided tour follow that order ([`home-public-status-filters`](src/app/components/home-public-status-filters/home-public-status-filters.component.html), [`info-home-filter-preview-tabs`](src/app/components/info-home-filter-preview-tabs/info-home-filter-preview-tabs.component.html), [`filtering-section-tour.ts`](src/app/lib/help-tour-catalog/filtering-section-tour.ts)).
+
 - **Admin → Email Templates:** HTML Preview no longer applies `[&_*]:!text-inherit`, so inline button colors (for example white text on dark store links) render correctly in [`admin-email-templates-editor`](../src/app/components/admin-email-templates-editor/admin-email-templates-editor.component.html).
 
 - **Welcome emails:** Migration [`20261119150000_subscriber_welcome_heading_typo.sql`](../supabase/migrations/20261119150000_subscriber_welcome_heading_typo.sql) corrects the **`subscriber_welcome`** HTML heading to **Cross Pointe Prayer Community** (the historical template seed in [`20260710120000_email_templates_outlook_desktop_safe.sql`](../supabase/migrations/20260710120000_email_templates_outlook_desktop_safe.sql) omitted the “e”).

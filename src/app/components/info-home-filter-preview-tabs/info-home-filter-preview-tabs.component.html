@@ -43,69 +43,53 @@
 </div>
 
 @if (isPublicTabActive()) {
-<div [class]="publicPanelGroupClass + ' ' + chipRowClass">
-  <app-home-sub-filter-chip
-    chipAriaLabel="Add a church prayer"
-    [stretch]="false"
-    [active]="false"
-    [layoutClass]="addPrayerChipLayoutClass"
-    [activeClass]="chipThemes.current.active"
-    [inactiveClass]="chipThemes.current.inactive"
-    (chipClick)="openAddChurchPrayer.emit()"
-  >
-    <svg
-      class="size-6 shrink-0"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2.25"
-      stroke-linecap="round"
-      aria-hidden="true"
-    >
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  </app-home-sub-filter-chip>
-
-  <div [class]="chipHostClass">
+<div [class]="publicPanelGroupClass">
+  <div [class]="chipRowClass">
     <app-home-sub-filter-chip
+      chipAriaLabel="Add a church prayer"
+      [stretch]="false"
+      [active]="false"
+      [layoutClass]="addPrayerChipLayoutClass"
+      [activeClass]="chipThemes.current.active"
+      [inactiveClass]="chipThemes.current.inactive"
+      (chipClick)="openAddChurchPrayer.emit()"
+    >
+      <svg
+        class="size-6 shrink-0"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.25"
+        stroke-linecap="round"
+        aria-hidden="true"
+      >
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+    </app-home-sub-filter-chip>
+
+    <app-home-sub-filter-chip
+      [stretch]="true"
       [active]="previewFilter === 'current'"
-      [layoutClass]="chipButtonClass"
       [activeClass]="chipThemes.current.active"
       [inactiveClass]="chipThemes.current.inactive"
       (chipClick)="setPreviewFilter('current')"
     >
       Current (9)
     </app-home-sub-filter-chip>
-  </div>
 
-  <div [class]="chipHostClass">
     <app-home-sub-filter-chip
+      [stretch]="true"
       [active]="previewFilter === 'answered'"
-      [layoutClass]="chipButtonClass"
       [activeClass]="chipThemes.answered.active"
       [inactiveClass]="chipThemes.answered.inactive"
       (chipClick)="setPreviewFilter('answered')"
     >
       Answered (2)
     </app-home-sub-filter-chip>
-  </div>
 
-  <div [class]="chipHostClass">
     <app-home-sub-filter-chip
-      [active]="previewFilter === 'archived'"
-      [layoutClass]="chipButtonClass"
-      [activeClass]="chipThemes.archived.active"
-      [inactiveClass]="chipThemes.archived.inactive"
-      (chipClick)="setPreviewFilter('archived')"
-    >
-      Archived (8)
-    </app-home-sub-filter-chip>
-  </div>
-
-  <div [class]="chipHostClass">
-    <app-home-sub-filter-chip
+      [stretch]="true"
       [active]="previewFilter === 'total'"
-      [layoutClass]="chipButtonClass"
       [activeClass]="chipThemes.total.active"
       [inactiveClass]="chipThemes.total.inactive"
       (chipClick)="setPreviewFilter('total')"
@@ -114,16 +98,30 @@
     </app-home-sub-filter-chip>
   </div>
 
-  <div [class]="chipHostClass">
-    <app-home-sub-filter-chip
-      [active]="previewFilter === 'prompts'"
-      [layoutClass]="chipButtonClass"
-      [activeClass]="chipThemes.prompts.active"
-      [inactiveClass]="chipThemes.prompts.inactive"
-      (chipClick)="setPreviewFilter('prompts')"
-    >
-      Prompts (12)
-    </app-home-sub-filter-chip>
+  <div [class]="chipRowClass + ' mt-2'">
+    <div [class]="chipHostClass">
+      <app-home-sub-filter-chip
+        [active]="previewFilter === 'archived'"
+        [layoutClass]="chipButtonClass"
+        [activeClass]="chipThemes.archived.active"
+        [inactiveClass]="chipThemes.archived.inactive"
+        (chipClick)="setPreviewFilter('archived')"
+      >
+        Archived (8)
+      </app-home-sub-filter-chip>
+    </div>
+
+    <div [class]="chipHostClass">
+      <app-home-sub-filter-chip
+        [active]="previewFilter === 'prompts'"
+        [layoutClass]="chipButtonClass"
+        [activeClass]="chipThemes.prompts.active"
+        [inactiveClass]="chipThemes.prompts.inactive"
+        (chipClick)="setPreviewFilter('prompts')"
+      >
+        Prompts (12)
+      </app-home-sub-filter-chip>
+    </div>
   </div>
 </div>
 }

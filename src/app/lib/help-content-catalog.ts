@@ -404,7 +404,7 @@ export function getDefaultHelpSections(): HelpSection[] {
         content: [
           {
             subtitle: 'Filter Options',
-            text: 'The main filter row has **Church**, **Personal**, and **Memorize**. The active tab looks like a folder tab whose color fills the section below. Tap **Church** for community prayers, then use the **Current**, **Answered**, **Archived**, and **Total** filter chips in that section. **Prompts** shows prayer prompt cards under Church. If your church maps a Planning Center list, **Members** also appears after Prompts. **Personal** and **Memorize** each show their own filter chips in the tab section when selected.',
+            text: 'The main filter row has **Church**, **Personal**, and **Memorize**. The active tab looks like a folder tab whose color fills the section below. Tap **Church** for community prayers. The first row is **Current**, **Answered**, and **Total**. The second row is **Archived** and **Prompts**. **Prompts** shows prayer prompt cards under Church. If your church maps a Planning Center list, **Members** also appears after Prompts. **Personal** and **Memorize** each show their own filter chips in the tab section when selected.',
           },
           {
             subtitle: 'Personal Prayers Filter',
